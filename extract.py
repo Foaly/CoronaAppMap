@@ -19,19 +19,12 @@ import gmaps
 from ipywidgets.embed import embed_minimal_html
 
 
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        d[col[0]] = row[idx]
-    return d
-
-
 def main():
     db_file = "RaMBLE_playstore_v35.14_20200621_2000.sqlite"
-    not_before_date = ('2020-06-21',)
+    not_before_date = {"not_before_date": '2020-06-21'}
 
     connection = sqlite3.connect(db_file)
-    connection.row_factory = dict_factory
+    connection.row_factory = sqlite3.Row
     cursor = connection.cursor()
 
     cursor.execute("""SELECT 
@@ -45,7 +38,7 @@ def main():
                       INNER JOIN locations ON devices.id = locations.device_id
                       WHERE 
                           service_uuids = "fd6f" AND
-                          datetime(locations.timestamp, 'unixepoch', 'localtime') > datetime(?, 'localtime')
+                          datetime(locations.timestamp, 'unixepoch', 'localtime') > datetime( :not_before_date , 'localtime')
                       ORDER BY locations.timestamp """, not_before_date)
     result = cursor.fetchall()
     connection.close()
