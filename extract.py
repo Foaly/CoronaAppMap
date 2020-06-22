@@ -28,6 +28,8 @@ def dict_factory(cursor, row):
 
 def main():
     db_file = "RaMBLE_playstore_v35.14_20200621_2000.sqlite"
+    not_before_date = ('2020-06-21',)
+
     connection = sqlite3.connect(db_file)
     connection.row_factory = dict_factory
     cursor = connection.cursor()
@@ -41,8 +43,10 @@ def main():
                           locations.accuracy as 'Accuracy'
                       FROM devices
                       INNER JOIN locations ON devices.id = locations.device_id
-                      WHERE service_uuids = "fd6f"
-                      ORDER BY locations.timestamp """)
+                      WHERE 
+                          service_uuids = "fd6f" AND
+                          datetime(locations.timestamp, 'unixepoch', 'localtime') > datetime(?, 'localtime')
+                      ORDER BY locations.timestamp """, not_before_date)
     result = cursor.fetchall()
     connection.close()
 
