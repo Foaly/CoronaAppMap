@@ -46,6 +46,10 @@ def main():
     result = cursor.fetchall()
     connection.close()
 
+    if not result:
+        print("No exposure notification beacons found!")
+        return
+
     locations = []
     for line in result:
         locations.append([line["Latitude"], line["Longitude"]])
