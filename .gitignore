@@ -1,0 +1,9 @@
+# Application files
+export.html
+*.sqlite
+
+# PyCharm
+.idea/*
+
+# Virtual Environment
+venv/*
