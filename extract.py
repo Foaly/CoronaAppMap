@@ -48,8 +48,10 @@ def main():
         return
 
     locations = []
+    info_texts = []
     for line in result:
         locations.append([line["Latitude"], line["Longitude"]])
+        info_texts.append(line['Timestamp'] + "<br>" + line['Rolling Proximity Identifier'])
 
     # gmaps.configure(api_key='API_KEY')
     fig = gmaps.Map(width='100%', height='100vh', layout={'height': '98vh'})
@@ -59,6 +61,7 @@ def main():
     dots = gmaps.symbol_layer(
         locations, fill_color='rgba(0, 150, 0, 0.6)',
         stroke_color='rgba(0, 100, 0, 0.6)', scale=3
+        ,info_box_content=info_texts, display_info_box=True
     )
     fig.add_layer(heatmap_layer)
     fig.add_layer(dots)
