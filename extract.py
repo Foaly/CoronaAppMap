@@ -15,10 +15,26 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sqlite3
+import collections
 import gmaps
 from ipywidgets.embed import embed_minimal_html
 
 
+RGB = collections.namedtuple('RGB', ['r', 'g', 'b'])
+
+
+def clamp(n, smallest, largest):
+    return max(smallest, min(n, largest))
+
+
+# convert hue to RGB
+# hue has to be in range [0.f,1.f]
+def hue_to_RGB(hue: float):
+    r = abs(3.0 - 6.0 * hue) - 1.0
+    g = 2.0 - abs(2.0 - 6.0 * hue)
+    b = 2.0 - abs(4.0 - 6.0 * hue)
+
+    return RGB(clamp(r, 0.0, 1.0) * 255, clamp(g, 0.0, 1.0) * 255, clamp(b, 0.0, 1.0) * 255)
 def main():
     db_file = "RaMBLE_playstore_v35.14_20200621_2000.sqlite"
     not_before_date = {"not_before_date": '2020-06-21'}
@@ -39,7 +55,7 @@ def main():
                       WHERE 
                           service_uuids = "fd6f" AND
                           datetime(locations.timestamp, 'unixepoch', 'localtime') > datetime( :not_before_date , 'localtime')
-                      ORDER BY locations.timestamp """, not_before_date)
+                      ORDER BY devices.service_data """, not_before_date)
     result = cursor.fetchall()
     connection.close()
 
@@ -49,9 +65,18 @@ def main():
 
     locations = []
     info_texts = []
+    colors = []
+    temp_color = 0
+    r_p_id = 0
+
     for line in result:
         locations.append([line["Latitude"], line["Longitude"]])
+        if r_p_id != line['Rolling Proximity Identifier']:
+            rgb = hue_to_RGB(random.uniform(0.0, 1.0))
+            temp_color = 'rgba(' + str(round(rgb.r)) + ', ' + str(round(rgb.g)) + ', ' + str(round(rgb.b)) + ', 1.0)'
+            r_p_id = line['Rolling Proximity Identifier']
         info_texts.append(line['Timestamp'] + "<br>" + line['Rolling Proximity Identifier'])
+        colors.append(temp_color)
 
     # gmaps.configure(api_key='API_KEY')
     fig = gmaps.Map(width='100%', height='100vh', layout={'height': '98vh'})
@@ -59,9 +84,9 @@ def main():
         locations, point_radius=30
     )
     dots = gmaps.symbol_layer(
-        locations, fill_color='rgba(0, 150, 0, 0.6)',
-        stroke_color='rgba(0, 100, 0, 0.6)', scale=3
-        ,info_box_content=info_texts, display_info_box=True
+       locations, fill_color=colors,
+       stroke_color=colors, scale=3,
+       info_box_content=info_texts, display_info_box=True
     )
     fig.add_layer(heatmap_layer)
     fig.add_layer(dots)
