@@ -15,7 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sqlite3
+import random
 import collections
+import math
 import gmaps
 from ipywidgets.embed import embed_minimal_html
 
@@ -35,6 +37,35 @@ def hue_to_RGB(hue: float):
     b = 2.0 - abs(4.0 - 6.0 * hue)
 
     return RGB(clamp(r, 0.0, 1.0) * 255, clamp(g, 0.0, 1.0) * 255, clamp(b, 0.0, 1.0) * 255)
+
+
+def destination_point(start_lat, start_lon, distance, bearing):
+    """
+    Calculates the destination point given a start point, a distance traveled in the initial bearing.
+
+    :param start_lat: latitude in degrees
+    :param start_lon: longitude in degrees
+    :param distance: distance traveled in meters
+    :param bearing: initial bearing in degrees, clockwise from north
+    :return: latitude in degrees, longitude in degrees
+    """
+    earth_radius = 6371000  # in meters
+    φ1 = start_lat * math.pi / 180.0  # convert degrees to radians
+    λ1 = start_lon * math.pi / 180.0  # convert degrees to radians
+    θ = bearing * math.pi / 180.0  # convert degrees to radians
+    ang_dist = distance / earth_radius
+
+    φ2 = math.asin(math.sin(φ1) * math.cos(ang_dist) +
+                   math.cos(φ1) * math.sin(ang_dist) * math.cos(θ))
+    λ2 = λ1 + math.atan2(math.sin(θ) * math.sin(ang_dist) * math.cos(φ1),
+                         math.cos(ang_dist) - math.sin(φ1) * math.sin(φ2))
+
+    # convert result back to degrees
+    end_lat = φ2 * 180.0 / math.pi
+    end_lon = λ2 * 180.0 / math.pi
+    return end_lat, end_lon
+
+
 def main():
     db_file = "RaMBLE_playstore_v35.14_20200621_2000.sqlite"
     not_before_date = {"not_before_date": '2020-06-21'}
@@ -70,11 +101,14 @@ def main():
     r_p_id = 0
 
     for line in result:
-        locations.append([line["Latitude"], line["Longitude"]])
         if r_p_id != line['Rolling Proximity Identifier']:
             rgb = hue_to_RGB(random.uniform(0.0, 1.0))
             temp_color = 'rgba(' + str(round(rgb.r)) + ', ' + str(round(rgb.g)) + ', ' + str(round(rgb.b)) + ', 1.0)'
             r_p_id = line['Rolling Proximity Identifier']
+
+        lat, lon = destination_point(line["Latitude"], line["Longitude"], random.uniform(0, line["Accuracy"]), random.uniform(0, 360))
+
+        locations.append([lat, lon])
         info_texts.append(line['Timestamp'] + "<br>" + line['Rolling Proximity Identifier'])
         colors.append(temp_color)
 
